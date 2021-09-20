@@ -1,6 +1,9 @@
 using UnityEngine;
 using TMPro;
 using System.Collections;
+using System;
+using Random = UnityEngine.Random;
+using UnityEngine.UI;
 
 public class GameManager: MonoBehaviour
 {
@@ -14,6 +17,12 @@ public class GameManager: MonoBehaviour
         InFrontOf,
         NextTo,
         In
+    }
+
+    private enum Languages
+    {
+        ENG,
+        DEU
     }
 
     private string[] prepositionsText =
@@ -31,14 +40,22 @@ public class GameManager: MonoBehaviour
     private GameObject circle;
     private TMP_Text prepositionTxt;
     private TMP_Text mistakeText;
+    private TMP_Text infoText;
 
+    private Text checkButtonText;  //TO DO: de schimbat in Button TMP
 
     private Directions currentDirection;
     private SpriteRenderer circleSpriteRenderer;
 
-    private bool behind;
+    private Languages currentLanguage;
+
     private const int sortingBehind = -2;
+    private const int sortingMiddle= 0;
     private const int sortingFront = 2;
+
+    private readonly Vector3 behindLayer = new Vector3(0.8f, 0.8f, 0.8f);
+    private readonly Vector3 middleLayer = new Vector3(0.5f, 0.5f, 0.5f);
+    private readonly Vector3 frontLayer = new Vector3(1f, 1f, 1f);
 
     private const float thresholdOn = 0.4f;
 
@@ -46,33 +63,63 @@ public class GameManager: MonoBehaviour
 
     private void Start()
     {
-        square = GameObject.Find("Square");
-        circle = GameObject.Find("Circle");
+        square = GameObject.FindGameObjectWithTag("box");
+        circle = GameObject.FindGameObjectWithTag("player");
+        circle.transform.localScale = frontLayer;
         prepositionTxt = GameObject.Find("Preposition").GetComponent<TMP_Text>();
         mistakeText = GameObject.Find("Mistake").GetComponent<TMP_Text>();
+        checkButtonText = GameObject.Find("CheckButton").GetComponentInChildren<Text>();
+        infoText = GameObject.Find("Info").GetComponent<TMP_Text>();
         circleSpriteRenderer = circle.GetComponent<SpriteRenderer>();
-        currentDirection = Directions.On;
+        circleSpriteRenderer.sortingOrder = sortingFront;
+        ChangeDirection();
         mistakeText.gameObject.SetActive(false);
+        currentLanguage = Languages.ENG;
     }
 
     private void Update()
     {
-        prepositionTxt.text = prepositionsText[(int)currentDirection];
+        
         ForDebuging();
+
         if (Input.GetKeyDown(KeyCode.UpArrow))
         {
-            if (behind)
+            switch (circleSpriteRenderer.sortingOrder)
             {
-                circleSpriteRenderer.sortingOrder = sortingFront;
-                circle.transform.localScale = Vector3.one;
-                behind = false;
+                case sortingBehind:
+                    circleSpriteRenderer.sortingOrder = sortingMiddle;
+                    circle.transform.localScale = middleLayer;
+                    break;
+
+                case sortingMiddle:
+                    circleSpriteRenderer.sortingOrder = sortingFront;
+                    circle.transform.localScale = frontLayer;
+                    break;
+
+                case sortingFront:
+                    //TO DO: adaugat un efect
+                    break;
             }
-            else
+        }
+
+        if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            switch (circleSpriteRenderer.sortingOrder)
             {
-                circleSpriteRenderer.sortingOrder = sortingBehind;
-                circle.transform.localScale = 0.8f * Vector3.one;
-                behind = true; 
-            }        
+                case sortingBehind:
+                    //TO DO: adaugat un efect
+                    break;
+
+                case sortingMiddle:
+                    circleSpriteRenderer.sortingOrder = sortingBehind;
+                    circle.transform.localScale = behindLayer;
+                    break;
+
+                case sortingFront:
+                    circleSpriteRenderer.sortingOrder = sortingMiddle;
+                    circle.transform.localScale = middleLayer;
+                    break;
+            }
         }
     }
 
@@ -162,7 +209,36 @@ public class GameManager: MonoBehaviour
                     return true;
                 break;
 
-            // TO DO: case In + case Default
+            case Directions.In:
+                //TO DO; de adaugat sprite-uri pentru box si modificat "0.1f"
+                float squareX = square.transform.localScale.x / 2;
+                float squareY = square.transform.localScale.y / 2;
+                float circleX = circle.transform.localScale.x / 2;
+                float circleY = circle.transform.localScale.y / 2;
+                float squareLeftSide = square.transform.position.x - squareX;
+                float squareRightSide = square.transform.position.x + squareX - 0.1f;
+                float squareTopSide = square.transform.position.y + squareY;
+                float squareBottomSide = square.transform.position.y - squareY - 0.1f;
+                float circleLeftSide = circle.transform.position.x - circleX;
+                float circleRightSide = circle.transform.position.x + circleX;
+                float circleTopSide = circle.transform.position.y + circleY;
+                float circleBottomSide = circle.transform.position.y - circleY;
+
+                if (circleSpriteRenderer.sortingOrder == sortingMiddle)
+                {
+                    if (squareLeftSide <= circleLeftSide && squareRightSide >= circleRightSide)
+                    {
+                        if (squareTopSide >= circleTopSide && squareBottomSide <= circleBottomSide)
+                        {
+                            return true;
+                        }    
+                    }
+                }
+                break;
+
+            default:
+                throw new ArgumentException("Wrong direction");
+            
         }
         return false;
     }
@@ -180,7 +256,6 @@ public class GameManager: MonoBehaviour
         else
         {
             mistakeText.gameObject.SetActive(true);
-            mistakeText.text = "The object is in the wrong place!!! Try again";
             disableMistakeCorutine = DisableMistake();
             StartCoroutine(disableMistakeCorutine);
         }
@@ -188,8 +263,14 @@ public class GameManager: MonoBehaviour
 
     private void ChangeDirection()
     {
-        currentDirection++;
-        // TO DO: random direction
+        Directions tempDirection = (Directions)Random.Range(0, 6);
+        while (currentDirection == tempDirection)
+            tempDirection = (Directions)Random.Range(0, 6);
+        currentDirection = tempDirection;
+        if (currentLanguage == Languages.ENG)
+            prepositionTxt.text = "Place the circle correctly for: " + prepositionsText[(int)currentDirection];
+        if (currentLanguage == Languages.DEU)
+            prepositionTxt.text = "Setzen Sie das Objekt fur: " + prepositionsText[(int)currentDirection];
     }
 
     private IEnumerator DisableMistake()
@@ -197,7 +278,32 @@ public class GameManager: MonoBehaviour
         yield return new WaitForSeconds(2f);
         mistakeText.gameObject.SetActive(false);
     }
+
+    public void ChangeLanguage(int option)
+    {
+        TMP_Dropdown dropdown = FindObjectOfType<TMP_Dropdown>();
+        switch (dropdown.value)
+        {
+            case (int)Languages.ENG:
+                prepositionTxt.text = "Place the circle correctly for: " + prepositionsText[(int)currentDirection];
+                mistakeText.text = "The object is in the wrong place!!! Try again";
+                infoText.text = "bubululuuuu";
+                currentLanguage = Languages.ENG;
+                checkButtonText.text = "Check";
+                break;
+
+            case (int)Languages.DEU:
+                prepositionTxt.text = "Setzen Sie das Objekt fur: " + prepositionsText[(int)currentDirection];
+                mistakeText.text = "Das Objekt ist nicht richtig gesetzt!!! Versuchen Sie wieder";
+                infoText.text = "blabalalallala";
+                checkButtonText.text = "Verifizieren";
+                currentLanguage = Languages.DEU;
+                break;
+
+            default:
+                throw new ArgumentException("Wrong language");
+        }
+    }
 }
 
 //TO DO: de adaugat efecte audio
-
