@@ -54,16 +54,17 @@ public class GameManager: MonoBehaviour
     private const int sortingMiddle= 0;
     private const int sortingFront = 2;
 
-    private readonly Vector3 behindLayer = new Vector3(0.8f, 0.8f, 0.8f);
-    private readonly Vector3 middleLayer = new Vector3(0.5f, 0.5f, 0.5f);
+    private readonly Vector3 behindLayer = new Vector3(0.6f, 0.6f, 0.6f);
+    private readonly Vector3 middleLayer = new Vector3(0.8f, 0.8f, 0.8f);
     private readonly Vector3 frontLayer = new Vector3(1f, 1f, 1f);
 
     private const float thresholdOn = 0.4f;
 
-    private IEnumerator disableMistakeCorutine;
+    private IEnumerator disableMistakeCoroutine;
 
-    private float volume;
+    private float volume = 0.5f;
     private AudioManager audioManager;
+    private Slider slider;
 
     private void Start()
     {
@@ -81,11 +82,13 @@ public class GameManager: MonoBehaviour
         mistakeText.gameObject.SetActive(false);
         currentLanguage = Languages.ENG;
         audioManager = FindObjectOfType<AudioManager>();
+        audioManager.SetVolume(volume);
+        slider = FindObjectOfType<Slider>();
+        slider.value = volume;
     }
 
     private void Update()
     {
-        
         ForDebuging();
 
         if (Input.GetKeyDown(KeyCode.UpArrow))
@@ -159,6 +162,10 @@ public class GameManager: MonoBehaviour
         {
             currentDirection = (Directions)6;
         }
+        if (currentLanguage == Languages.ENG)
+            prepositionTxt.text = "Place the circle correctly for: " + prepositionsText[(int)currentDirection];
+        if (currentLanguage == Languages.DEU)
+            prepositionTxt.text = "Setzen Sie das Objekt fur: " + prepositionsText[(int)currentDirection];
     }
 
     private bool CheckPosition()
@@ -251,21 +258,21 @@ public class GameManager: MonoBehaviour
 
     public void Check()
     {
-        if (disableMistakeCorutine != null)
-            StopCoroutine(disableMistakeCorutine);
+        if (disableMistakeCoroutine != null)
+            StopCoroutine(disableMistakeCoroutine);
 
         if (CheckPosition())
         {
             ChangeDirection();
             audioManager.PlayCorrectAnswer();
-            //TO DO: adaugare efect corect/fals + tranzitie
+            //TO DO: adaugare tranzitie
         }
         else
         {
             audioManager.PlayWrongAnswer();
             mistakeText.gameObject.SetActive(true);
-            disableMistakeCorutine = DisableMistake();
-            StartCoroutine(disableMistakeCorutine);
+            disableMistakeCoroutine = DisableMistake();
+            StartCoroutine(disableMistakeCoroutine);
         }
     }
 
@@ -319,10 +326,7 @@ public class GameManager: MonoBehaviour
 
     public void ChangeVolume()
     {
-        Slider slider = FindObjectOfType<Slider>();
         volume = slider.value;
-        //TO DO; change volume in audiosource
+        audioManager.SetVolume(volume);
     }
 }
-
-//TO DO: de adaugat efecte audio

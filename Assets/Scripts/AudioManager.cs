@@ -7,16 +7,24 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip wrongAnswerAudio;
     [SerializeField] private AudioClip correctAnswerAudio;
 
-    private IEnumerator switchAudioCorutine;
+    private IEnumerator resetVolumeCoroutine;
 
-    private AudioSource audioSource;
+    private AudioSource audioSourceBackground;
+    private AudioSource audioSourceAnswer;
+
+    private float volume = 1f;
+    private const float backgroundAudioCoefficient = 1f;
+    private const float answerAudioCoefficient = 1f;
 
     private void Start()
     {
-        audioSource = GetComponent<AudioSource>();
-        audioSource.clip = backgroundAudio;
-        audioSource.Play();
-        
+        AudioSource[] audioSources = GetComponents<AudioSource>();
+        audioSourceBackground = audioSources[0];
+        audioSourceAnswer = audioSources[1];
+        audioSourceBackground.clip = backgroundAudio;
+        audioSourceBackground.loop = true;
+        audioSourceBackground.Play();
+        audioSourceAnswer.Play();
     }
 
     private void Update()
@@ -25,27 +33,36 @@ public class AudioManager : MonoBehaviour
     }
     public void PlayCorrectAnswer()
     {
-        if (switchAudioCorutine != null)
-            StopCoroutine(switchAudioCorutine);
-        audioSource.clip = correctAnswerAudio;
-        audioSource.Play();
-        switchAudioCorutine = SwitchToBackground(correctAnswerAudio.length);
-        StartCoroutine(switchAudioCorutine);
+        if (resetVolumeCoroutine != null)
+            StopCoroutine(resetVolumeCoroutine);
+        audioSourceAnswer.clip = correctAnswerAudio;
+        audioSourceAnswer.Play();
+        audioSourceBackground.volume = volume * backgroundAudioCoefficient / 2;
+        resetVolumeCoroutine = ResetVolume(correctAnswerAudio.length);
+        StartCoroutine(resetVolumeCoroutine);
+        
     }
     public void PlayWrongAnswer()
     {
-        if (switchAudioCorutine != null)
-            StopCoroutine(switchAudioCorutine);
-        audioSource.clip = wrongAnswerAudio;
-        audioSource.Play();
-        switchAudioCorutine = SwitchToBackground(wrongAnswerAudio.length);
-        StartCoroutine(switchAudioCorutine);
+        if (resetVolumeCoroutine != null)
+            StopCoroutine(resetVolumeCoroutine);
+        audioSourceAnswer.clip = wrongAnswerAudio;
+        audioSourceAnswer.Play();
+        audioSourceBackground.volume = volume * backgroundAudioCoefficient / 2;
+        resetVolumeCoroutine = ResetVolume(wrongAnswerAudio.length);
+        StartCoroutine(resetVolumeCoroutine);
     }
 
-    private IEnumerator SwitchToBackground(float length)
+    private IEnumerator ResetVolume(float length)
     {
         yield return new WaitForSeconds(length);
-        audioSource.clip = backgroundAudio;
-        audioSource.Play();
+        audioSourceBackground.volume = volume * backgroundAudioCoefficient;
+    }
+
+    public void SetVolume(float newVolume)
+    {
+        volume = newVolume;
+        audioSourceBackground.volume = volume * backgroundAudioCoefficient;
+        audioSourceAnswer.volume = volume * answerAudioCoefficient;
     }
 }
