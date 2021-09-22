@@ -41,6 +41,7 @@ public class GameManager: MonoBehaviour
     private TMP_Text prepositionTxt;
     private TMP_Text mistakeText;
     private TMP_Text infoText;
+    private TMP_Text volumeText;
 
     private Text checkButtonText;  //TO DO: de schimbat in Button TMP
 
@@ -61,6 +62,9 @@ public class GameManager: MonoBehaviour
 
     private IEnumerator disableMistakeCorutine;
 
+    private float volume;
+    private AudioManager audioManager;
+
     private void Start()
     {
         square = GameObject.FindGameObjectWithTag("box");
@@ -70,11 +74,13 @@ public class GameManager: MonoBehaviour
         mistakeText = GameObject.Find("Mistake").GetComponent<TMP_Text>();
         checkButtonText = GameObject.Find("CheckButton").GetComponentInChildren<Text>();
         infoText = GameObject.Find("Info").GetComponent<TMP_Text>();
+        volumeText = GameObject.Find("Volume").GetComponent<TMP_Text>();
         circleSpriteRenderer = circle.GetComponent<SpriteRenderer>();
         circleSpriteRenderer.sortingOrder = sortingFront;
         ChangeDirection();
         mistakeText.gameObject.SetActive(false);
         currentLanguage = Languages.ENG;
+        audioManager = FindObjectOfType<AudioManager>();
     }
 
     private void Update()
@@ -251,14 +257,22 @@ public class GameManager: MonoBehaviour
         if (CheckPosition())
         {
             ChangeDirection();
+            audioManager.PlayCorrectAnswer();
             //TO DO: adaugare efect corect/fals + tranzitie
         }
         else
         {
+            audioManager.PlayWrongAnswer();
             mistakeText.gameObject.SetActive(true);
             disableMistakeCorutine = DisableMistake();
             StartCoroutine(disableMistakeCorutine);
         }
+    }
+
+    private IEnumerator DisableMistake()
+    {
+        yield return new WaitForSeconds(2f);
+        mistakeText.gameObject.SetActive(false);
     }
 
     private void ChangeDirection()
@@ -273,13 +287,9 @@ public class GameManager: MonoBehaviour
             prepositionTxt.text = "Setzen Sie das Objekt fur: " + prepositionsText[(int)currentDirection];
     }
 
-    private IEnumerator DisableMistake()
-    {
-        yield return new WaitForSeconds(2f);
-        mistakeText.gameObject.SetActive(false);
-    }
+    
 
-    public void ChangeLanguage(int option)
+    public void ChangeLanguage()
     {
         TMP_Dropdown dropdown = FindObjectOfType<TMP_Dropdown>();
         switch (dropdown.value)
@@ -290,6 +300,7 @@ public class GameManager: MonoBehaviour
                 infoText.text = "bubululuuuu";
                 currentLanguage = Languages.ENG;
                 checkButtonText.text = "Check";
+                volumeText.text = "Volume";
                 break;
 
             case (int)Languages.DEU:
@@ -298,11 +309,19 @@ public class GameManager: MonoBehaviour
                 infoText.text = "blabalalallala";
                 checkButtonText.text = "Verifizieren";
                 currentLanguage = Languages.DEU;
+                volumeText.text = "Lautstarke";
                 break;
 
             default:
                 throw new ArgumentException("Wrong language");
         }
+    }
+
+    public void ChangeVolume()
+    {
+        Slider slider = FindObjectOfType<Slider>();
+        volume = slider.value;
+        //TO DO; change volume in audiosource
     }
 }
 
